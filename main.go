@@ -184,7 +184,7 @@ func clientConfig(c *active24DNSProviderSolver, ch *v1alpha1.ChallengeRequest) (
 	if cfg.ApiUrl != "" {
 		config.ApiUrl = cfg.ApiUrl
 	}
-	config.MaxPages = 100 // safeguard to prevent infinite loops
+	config.MaxPages = 10 // safeguard to prevent infinite loops
 	if cfg.MaxPages > 0 {
 		config.MaxPages = cfg.MaxPages
 	}

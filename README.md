@@ -61,8 +61,8 @@ spec:
 `domain` is optional. If not set, it will be determined from [cert-manager ChallengeRequest.ResolvedZone](https://github.com/cert-manager/cert-manager/blob/master/pkg/acme/webhook/apis/acme/v1alpha1/types.go).
 If setting explicitly, specify the actual domain managed by Active24.
 
-`maxPages` is optional. It specifies page limit for paginated DNS records that Active24 DNS APIv2 returns. Default value is 100.
-Default page size (currently not modified by this webhook) is 20 e.g. this webhook will handle situations with up to 2000 _acme-challenge DNS TXT records by default.
+`maxPages` is optional. It specifies page limit for paginated DNS records that Active24 DNS APIv2 returns. Default value is 10.
+Default page size (currently not modified by this webhook) is 20 e.g. this webhook will handle situations with up to 200 _acme-challenge DNS TXT records by default.
 
 Install using helm
 
