@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-IMAGE_NAME := "rkosegi/cert-manager-webhook-active24"
-IMAGE_TAG := "v1.0.2"
+IMAGE_NAME := "hostalp/cert-manager-webhook-active24"
+IMAGE_TAG := "1.2.0"
 
 OUT := $(shell pwd)/deploy
 
@@ -23,13 +23,13 @@ $(shell mkdir -p "$(OUT)")
 .DEFAULT_GOAL := build-local
 
 dist-clean:
-	rm -fr .cache kubebuilder cert-manager-webhook-active24
+	rm -fr .cache controller-tools cert-manager-webhook-active24
 
 fetch-test-binaries:
 	mkdir .cache || true
-	test -f .cache/kubebuilder-tools-1.15.5-linux-amd64.tar.gz || \
-		curl https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-1.15.5-linux-amd64.tar.gz -o .cache/kubebuilder-tools-1.15.5-linux-amd64.tar.gz
-	tar -zvxf .cache/kubebuilder-tools-1.15.5-linux-amd64.tar.gz
+	test -f .cache/envtest-v1.31.0-linux-amd64.tar.gz || \
+		curl https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v1.31.0/envtest-v1.31.0-linux-amd64.tar.gz -o .cache/envtest-v1.31.0-linux-amd64.tar.gz
+	tar -zvxf .cache/envtest-v1.31.0-linux-amd64.tar.gz
 
 
 verify:
