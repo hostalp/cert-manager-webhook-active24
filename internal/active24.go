@@ -17,48 +17,126 @@ limitations under the License.
 package internal
 
 import (
-	"github.com/rkosegi/active24-go/active24"
+	"fmt"
+
+	"github.com/hostalp/active24-go/active24"
 	"k8s.io/klog/v2"
 )
 
 type Config struct {
 	ApiKey     string
+	ApiSecret  string
 	ApiUrl     string
 	DomainName string
+	ServiceID  int
+	MaxPages   int
 }
 
 type ApiClient struct {
-	dns active24.DnsRecordActions
-	dom string
+	dns      active24.DnsRecordActions
+	dom      string
+	svcID    int
+	maxPages int
 }
 
 // FindTxtRecord Find TXT record by name and content
-func (a *ApiClient) FindTxtRecord(name string, text string) (*active24.DnsRecord, error) {
-	klog.V(4).Infof("FindTxtRecord: name=%s, text=%s", name, text)
+func (a *ApiClient) FindTxtRecord(name string, content string) (*active24.DnsRecord, error) {
+	klog.V(4).Infof("FindTxtRecord: domain=%s, service=%d, name=%s, content=%s",
+		a.dom, a.svcID, name, content)
 
-	records, err := a.dns.List()
+	records, err := a.dns.List(active24.DnsRecordTypeTXT, name)
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
 		return nil, err.Error()
 	}
+	if klog.V(9).Enabled() {
+		klog.V(9).Infof("records=%v", records)
+	}
 	for _, record := range records {
-		klog.V(9).Infof("record=%v", record)
-		if record.Name == name && *record.Type == "TXT" && *record.Text == text {
+		if klog.V(9).Enabled() {
+			klog.V(9).Infof("record=%v, content=%s", record, *record.Content)
+		}
+		if record.Name == name+"."+a.dom && *record.Content == content {
+			klog.V(4).Infof("Found record ID: %d", *record.ID)
 			return &record, nil
 		}
+	}
+	klog.V(4).Infof("Didn't find a record")
+	return nil, nil
+}
+
+// FindTxtRecordPaged Find TXT record by name and content with pagination support
+func (a *ApiClient) FindTxtRecordPaged(name string, content string) (*active24.DnsRecord, error) {
+	klog.V(4).Infof("FindTxtRecordPaged: domain=%s, service=%d, name=%s, content=%s",
+		a.dom, a.svcID, name, content)
+
+	// Get and process first page
+	record, nextPageUrl, nextPage, err := a.FindTxtRecordAtPage(name, content, "", 0)
+	if err != nil {
+		klog.V(1).ErrorS(err, "error finding a record")
+		return nil, err
+	}
+	if record != nil {
+		return record, nil
+	}
+
+	// Keep getting and processing next pages while we have either nextPageUrl or nextPage
+	pageCount := 1
+	for (nextPageUrl != "" || nextPage > 0) && pageCount < a.maxPages {
+		pageCount++
+		record, nextPageUrl, nextPage, err = a.FindTxtRecordAtPage(name, content, nextPageUrl, nextPage)
+		if err != nil {
+			klog.V(1).ErrorS(err, "error finding a record")
+			return nil, err
+		}
+		if record != nil {
+			return record, nil
+		}
+	}
+	if pageCount >= a.maxPages {
+		err := fmt.Errorf("maximum page limit %d reached in FindTxtRecordPaged, increase the MaxPages limit in the ClusterIssuer configuration", a.maxPages)
+		klog.V(1).ErrorS(err, "maxPages", a.maxPages)
+		return nil, err
 	}
 	return nil, nil
 }
 
-// UpdateTxtRecord Update existing DNS TXT record
-func (a *ApiClient) UpdateTxtRecord(hashId string, name string, text string, ttl int) error {
-	klog.V(4).Infof("UpdateTxtRecord: domain=%s, name=%s, text=%s, ttl=%d, hashId=%s",
-		a.dom, name, text, ttl, hashId)
-	err := a.dns.Update(active24.DnsRecordTypeTXT, &active24.DnsRecord{
-		HashId: &hashId,
-		Name:   name,
-		Text:   &text,
-		Ttl:    ttl,
+// FindTxtRecordAtPage Find TXT record by name and content at a specific page
+func (a *ApiClient) FindTxtRecordAtPage(name string, content string, recPageUrl string, recPage int) (*active24.DnsRecord, string, int, error) {
+	klog.V(4).Infof("FindTxtRecordAtPage: domain=%s, service=%d, name=%s, content=%s, pageUrl=%s or page=%d",
+		a.dom, a.svcID, name, content, recPageUrl, recPage)
+
+	records, nextPageUrl, nextPage, err := a.dns.ListPage(active24.DnsRecordTypeTXT, name, recPageUrl, recPage)
+	if err != nil {
+		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
+		return nil, "", 0, err.Error()
+	}
+	if klog.V(9).Enabled() {
+		klog.V(9).Infof("records=%v", records)
+	}
+	for _, record := range records {
+		if klog.V(9).Enabled() {
+			klog.V(9).Infof("record=%v, content=%s, nextPageUrl=%s or nextPage=%d", record, *record.Content, nextPageUrl, nextPage)
+		}
+		if record.Name == name+"."+a.dom && *record.Content == content {
+			klog.V(4).Infof("Found record ID: %d", *record.ID)
+			return &record, nextPageUrl, nextPage, nil
+		}
+	}
+	klog.V(4).Infof("Didn't find a record")
+	return nil, nextPageUrl, nextPage, nil
+}
+
+// NewTxtRecord Create new DNS TXT record
+func (a *ApiClient) NewTxtRecord(name string, content string, ttl int) error {
+	klog.V(4).Infof("NewTxtRecord: domain=%s, service=%d, name=%s, content=%s, ttl=%d",
+		a.dom, a.svcID, name, content, ttl)
+	rtype := string(active24.DnsRecordTypeTXT)
+	err := a.dns.Create(&active24.DnsRecord{
+		Type:    &rtype,
+		Name:    name,
+		Content: &content,
+		Ttl:     ttl,
 	})
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
@@ -67,14 +145,14 @@ func (a *ApiClient) UpdateTxtRecord(hashId string, name string, text string, ttl
 	return nil
 }
 
-// NewTxtRecord Create new DNS TXT record
-func (a *ApiClient) NewTxtRecord(name string, text string, ttl int) error {
-	klog.V(4).Infof("NewTxtRecord: domain=%s, name=%s, text=%s, ttl=%d",
-		a.dom, name, text, ttl)
-	err := a.dns.Create(active24.DnsRecordTypeTXT, &active24.DnsRecord{
-		Ttl:  ttl,
-		Name: name,
-		Text: &text,
+// UpdateTxtRecord Update existing DNS TXT record
+func (a *ApiClient) UpdateTxtRecord(ID int, name string, content string, ttl int) error {
+	klog.V(4).Infof("UpdateTxtRecord: domain=%s, service=%d, name=%s, content=%s, ttl=%d, ID=%d",
+		a.dom, a.svcID, name, content, ttl, ID)
+	err := a.dns.Update(ID, &active24.DnsRecord{
+		Name:    name,
+		Content: &content,
+		Ttl:     ttl,
 	})
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
@@ -84,9 +162,9 @@ func (a *ApiClient) NewTxtRecord(name string, text string, ttl int) error {
 }
 
 // DeleteTxtRecord Delete existing DNS record
-func (a *ApiClient) DeleteTxtRecord(hashId string) error {
-	klog.V(4).Infof("DeleteTxtRecord: domain=%s, hashId=%s", a.dom, hashId)
-	err := a.dns.Delete(hashId)
+func (a *ApiClient) DeleteTxtRecord(ID int) error {
+	klog.V(4).Infof("DeleteTxtRecord: domain=%s, service=%d, ID=%d", a.dom, a.svcID, ID)
+	err := a.dns.Delete(ID)
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
 		return err.Error()
@@ -100,7 +178,9 @@ func NewApiClient(config Config) *ApiClient {
 		opts = append(opts, active24.ApiEndpoint(config.ApiUrl))
 	}
 	return &ApiClient{
-		dns: active24.New(config.ApiKey, opts...).Dns().With(config.DomainName),
-		dom: config.DomainName,
+		dns:      active24.New(config.ApiKey, config.ApiSecret, opts...).Dns().With(config.DomainName, config.ServiceID),
+		dom:      config.DomainName,
+		svcID:    config.ServiceID,
+		maxPages: config.MaxPages,
 	}
 }
