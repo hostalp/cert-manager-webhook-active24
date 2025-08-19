@@ -1,5 +1,4 @@
----
-name: Development build
+name: 'Dev: Verifier build'
 
 on:
   push:
@@ -18,7 +17,7 @@ jobs:
           go-version: '1.24'
 
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{github.event.pull_request.head.sha}}
 
@@ -34,7 +33,7 @@ jobs:
         run: go build -o webhook
 
       - name: Build Docker image
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: false

@@ -50,7 +50,6 @@ spec:
               name: *apiKSName
               key: 'apiSecret'
             serviceID: 12345678
-            domain: yourdomain.tld # optional
             maxPages: 10 # optional
 
 ---

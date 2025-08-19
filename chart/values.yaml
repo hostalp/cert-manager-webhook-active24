@@ -29,7 +29,7 @@ certManager: # Certmanager configuration
 
 image: # Container image coordinates
   repository: ghcr.io/hostalp/cert-manager-webhook-active24 # Image repository
-  tag: v1.2.0 # Image tag/version
+  tag: v1.2.1 # Image tag/version
   pullPolicy: IfNotPresent # Image pull policy
 
 nameOverride: "" # Name to use for overriding default name

@@ -49,7 +49,6 @@ type active24DNSProviderConfig struct {
 	ApiKeySecretRef    corev1.SecretKeySelector `json:"apiKeySecretRef"`
 	ApiSecretSecretRef corev1.SecretKeySelector `json:"apiSecretSecretRef"`
 	ServiceID          int                      `json:"serviceID"`
-	Domain             string                   `json:"domain"`
 	ApiUrl             string                   `json:"apiUrl"`
 	MaxPages           int                      `json:"maxPages"`
 }
@@ -82,10 +81,8 @@ func (c *active24DNSProviderSolver) Initialize(restConfig *rest.Config, _ <-chan
 func (c *active24DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	klog.V(2).Infof("Present: fqdn=%s, zone=%s, key=%s", ch.ResolvedFQDN, ch.ResolvedZone, ch.Key)
 
-	name, err := c.recordName(ch)
-	if err != nil {
-		return err
-	}
+	recordName := c.getRecordName(ch)
+	domainName := c.getDomainName(ch)
 
 	config, err := clientConfig(c, ch)
 	if err != nil {
@@ -93,19 +90,19 @@ func (c *active24DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error
 	}
 
 	client := internal.NewApiClient(config)
-	record, err := client.FindTxtRecordPaged(name, ch.Key)
+	record, err := client.FindTxtRecordPaged(domainName, recordName, ch.Key)
 	if err != nil {
 		return err
 	}
 
 	klog.V(6).Infof("Record: %v", record)
 	if record == nil {
-		err := client.NewTxtRecord(name, ch.Key, 300)
+		err := client.NewTxtRecord(recordName, ch.Key, 300)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := client.UpdateTxtRecord(*record.ID, name, ch.Key, 300)
+		err := client.UpdateTxtRecord(*record.ID, recordName, ch.Key, 300)
 		if err != nil {
 			return err
 		}
@@ -122,14 +119,12 @@ func (c *active24DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error
 		return err
 	}
 
-	name, err := c.recordName(ch)
-	if err != nil {
-		return err
-	}
+	recordName := c.getRecordName(ch)
+	domainName := c.getDomainName(ch)
 
 	client := internal.NewApiClient(config)
 
-	record, err := client.FindTxtRecordPaged(name, ch.Key)
+	record, err := client.FindTxtRecordPaged(domainName, recordName, ch.Key)
 	if err != nil {
 		return err
 	}
@@ -176,10 +171,6 @@ func clientConfig(c *active24DNSProviderSolver, ch *v1alpha1.ChallengeRequest) (
 		return config, err
 	}
 	config.ServiceID = cfg.ServiceID
-	config.DomainName = strings.TrimSuffix(ch.ResolvedZone, ".")
-	if cfg.Domain != "" {
-		config.DomainName = cfg.Domain
-	}
 	config.ApiUrl = "https://rest.active24.cz"
 	if cfg.ApiUrl != "" {
 		config.ApiUrl = cfg.ApiUrl
@@ -217,17 +208,14 @@ func clientConfig(c *active24DNSProviderSolver, ch *v1alpha1.ChallengeRequest) (
 	return config, nil
 }
 
-// extracts record name from FQDN
-func (c *active24DNSProviderSolver) recordName(ch *v1alpha1.ChallengeRequest) (string, error) {
-	klog.V(4).Infof("recordName: ResolvedZone=%s, ResolvedFQDN=%s", ch.ResolvedZone, ch.ResolvedFQDN)
-	return strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone), nil
-	// Replaced with simple TrimSuffix above
-	/* domain := strings.TrimSuffix(ch.ResolvedZone, ".")
-	regexStr := "(.+)\\." + domain + "\\."
-	r := regexp.MustCompile(regexStr)
-	name := r.FindStringSubmatch(ch.ResolvedFQDN)
-	if len(name) != 2 {
-		return "", fmt.Errorf("unable to extract name from FQDN '%s' using regex '%s'", ch.ResolvedFQDN, regexStr)
-	}
-	return strings.TrimSuffix(name[1], "."), nil */
+// Get record name from Challenge Request FQDN
+func (c *active24DNSProviderSolver) getRecordName(ch *v1alpha1.ChallengeRequest) string {
+	klog.V(4).Infof("getRecordName: ResolvedZone=%s, ResolvedFQDN=%s", ch.ResolvedZone, ch.ResolvedFQDN)
+	return strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
+}
+
+// Get domain name from Challenge Request Zone
+func (c *active24DNSProviderSolver) getDomainName(ch *v1alpha1.ChallengeRequest) string {
+	klog.V(4).Infof("getDomainName: ResolvedZone=%s", ch.ResolvedZone)
+	return strings.TrimSuffix(ch.ResolvedZone, ".")
 }

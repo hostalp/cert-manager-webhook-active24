@@ -48,12 +48,8 @@ spec:
               name: *apiKSName
               key: 'apiSecret'
             serviceID: 12345678
-            domain: somegreatdomain.tld # optional
             maxPages: 10 # optional
 ```
-`domain` is optional. If not set, it will be determined from [cert-manager ChallengeRequest.ResolvedZone](https://github.com/cert-manager/cert-manager/blob/master/pkg/acme/webhook/apis/acme/v1alpha1/types.go).
-If setting explicitly, specify the actual domain managed by Active24.
-
 `maxPages` is optional. It specifies page limit for paginated DNS records that Active24 DNS APIv2 returns. Default value is 10.
 Default page size (currently not modified by this webhook) is 20 e.g. this webhook will handle situations with up to 200 `_acme-challenge` DNS TXT records by default.
 
@@ -61,9 +57,9 @@ Default page size (currently not modified by this webhook) is 20 e.g. this webho
 Example using default settings:
 ```sh
 helm upgrade --install cert-manager-webhook-active24 -n cert-manager \
- oci://ghcr.io/hostalp/cert-manager-webhook-active24/charts/cert-manager-webhook-active24 --version 1.2.0
+ oci://ghcr.io/hostalp/cert-manager-webhook-active24/charts/cert-manager-webhook-active24 --version 1.2.1
 ```
-When customizing installation settings, use either customized values.yaml file via the `-f` flag, or specify individual settings via `--set` flags
+When customizing installation settings, either provide customized `values.yaml` file via the `-f` flag, or specify individual settings via `--set` flags
 
 ### Create certificate
 ```yaml

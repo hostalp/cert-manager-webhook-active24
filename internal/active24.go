@@ -24,27 +24,25 @@ import (
 )
 
 type Config struct {
-	ApiKey     string
-	ApiSecret  string
-	ApiUrl     string
-	DomainName string
-	ServiceID  int
-	MaxPages   int
+	ApiKey    string
+	ApiSecret string
+	ApiUrl    string
+	ServiceID int
+	MaxPages  int
 }
 
 type ApiClient struct {
 	dns      active24.DnsRecordActions
-	dom      string
 	svcID    int
 	maxPages int
 }
 
 // FindTxtRecord Find TXT record by name and content
-func (a *ApiClient) FindTxtRecord(name string, content string) (*active24.DnsRecord, error) {
-	klog.V(4).Infof("FindTxtRecord: domain=%s, service=%d, name=%s, content=%s",
-		a.dom, a.svcID, name, content)
+func (a *ApiClient) FindTxtRecord(domName string, recName string, content string) (*active24.DnsRecord, error) {
+	klog.V(4).Infof("FindTxtRecord: serviceID=%d, domain=%s, name=%s, content=%s",
+		a.svcID, domName, recName, content)
 
-	records, err := a.dns.List(active24.DnsRecordTypeTXT, name)
+	records, err := a.dns.List(active24.DnsRecordTypeTXT, recName)
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
 		return nil, err.Error()
@@ -52,13 +50,13 @@ func (a *ApiClient) FindTxtRecord(name string, content string) (*active24.DnsRec
 	if klog.V(9).Enabled() {
 		klog.V(9).Infof("records=%v", records)
 	}
-	for _, record := range records {
+	for i := range records {
 		if klog.V(9).Enabled() {
-			klog.V(9).Infof("record=%v, content=%s", record, *record.Content)
+			klog.V(9).Infof("record=%v, content=%s", records[i], *records[i].Content)
 		}
-		if record.Name == name+"."+a.dom && *record.Content == content {
-			klog.V(4).Infof("Found record ID: %d", *record.ID)
-			return &record, nil
+		if records[i].Name == recName+"."+domName && *records[i].Content == content {
+			klog.V(4).Infof("Found record ID: %d", *records[i].ID)
+			return &records[i], nil
 		}
 	}
 	klog.V(4).Infof("Didn't find a record")
@@ -66,25 +64,18 @@ func (a *ApiClient) FindTxtRecord(name string, content string) (*active24.DnsRec
 }
 
 // FindTxtRecordPaged Find TXT record by name and content with pagination support
-func (a *ApiClient) FindTxtRecordPaged(name string, content string) (*active24.DnsRecord, error) {
-	klog.V(4).Infof("FindTxtRecordPaged: domain=%s, service=%d, name=%s, content=%s",
-		a.dom, a.svcID, name, content)
+func (a *ApiClient) FindTxtRecordPaged(domName string, recName string, content string) (*active24.DnsRecord, error) {
+	klog.V(4).Infof("FindTxtRecordPaged: serviceID=%d, domain=%s, name=%s, content=%s",
+		a.svcID, domName, recName, content)
 
-	// Get and process first page
-	record, nextPageUrl, nextPage, err := a.FindTxtRecordAtPage(name, content, "", 0)
-	if err != nil {
-		klog.V(1).ErrorS(err, "error finding a record")
-		return nil, err
-	}
-	if record != nil {
-		return record, nil
-	}
+	var record *active24.DnsRecord
+	var nextPageUrl string
+	var nextPage int
+	var err error
 
-	// Keep getting and processing next pages while we have either nextPageUrl or nextPage
 	pageCount := 1
-	for (nextPageUrl != "" || nextPage > 0) && pageCount < a.maxPages {
-		pageCount++
-		record, nextPageUrl, nextPage, err = a.FindTxtRecordAtPage(name, content, nextPageUrl, nextPage)
+	for (pageCount == 1 || nextPageUrl != "" || nextPage > 0) && pageCount <= a.maxPages {
+		record, nextPageUrl, nextPage, err = a.FindTxtRecordAtPage(domName, recName, content, nextPageUrl, nextPage)
 		if err != nil {
 			klog.V(1).ErrorS(err, "error finding a record")
 			return nil, err
@@ -92,9 +83,10 @@ func (a *ApiClient) FindTxtRecordPaged(name string, content string) (*active24.D
 		if record != nil {
 			return record, nil
 		}
+		pageCount++
 	}
-	if pageCount >= a.maxPages {
-		err := fmt.Errorf("maximum page limit %d reached in FindTxtRecordPaged, increase the MaxPages limit in the ClusterIssuer configuration", a.maxPages)
+	if pageCount >= a.maxPages && (nextPageUrl != "" || nextPage > a.maxPages) {
+		err = fmt.Errorf("maximum page limit %d reached in FindTxtRecordPaged, increase the MaxPages limit in the ClusterIssuer configuration", a.maxPages)
 		klog.V(1).ErrorS(err, "maxPages", a.maxPages)
 		return nil, err
 	}
@@ -102,11 +94,11 @@ func (a *ApiClient) FindTxtRecordPaged(name string, content string) (*active24.D
 }
 
 // FindTxtRecordAtPage Find TXT record by name and content at a specific page
-func (a *ApiClient) FindTxtRecordAtPage(name string, content string, recPageUrl string, recPage int) (*active24.DnsRecord, string, int, error) {
-	klog.V(4).Infof("FindTxtRecordAtPage: domain=%s, service=%d, name=%s, content=%s, pageUrl=%s or page=%d",
-		a.dom, a.svcID, name, content, recPageUrl, recPage)
+func (a *ApiClient) FindTxtRecordAtPage(domName string, recName string, content string, recPageUrl string, recPage int) (*active24.DnsRecord, string, int, error) {
+	klog.V(4).Infof("FindTxtRecordAtPage: serviceID=%d, domain=%s, name=%s, content=%s, pageUrl=%s or page=%d",
+		a.svcID, domName, recName, content, recPageUrl, recPage)
 
-	records, nextPageUrl, nextPage, err := a.dns.ListPage(active24.DnsRecordTypeTXT, name, recPageUrl, recPage)
+	records, nextPageUrl, nextPage, err := a.dns.ListPage(active24.DnsRecordTypeTXT, recName, recPageUrl, recPage)
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
 		return nil, "", 0, err.Error()
@@ -114,13 +106,13 @@ func (a *ApiClient) FindTxtRecordAtPage(name string, content string, recPageUrl 
 	if klog.V(9).Enabled() {
 		klog.V(9).Infof("records=%v", records)
 	}
-	for _, record := range records {
+	for i := range records {
 		if klog.V(9).Enabled() {
-			klog.V(9).Infof("record=%v, content=%s, nextPageUrl=%s or nextPage=%d", record, *record.Content, nextPageUrl, nextPage)
+			klog.V(9).Infof("record=%v, content=%s, nextPageUrl=%s or nextPage=%d", records[i], *records[i].Content, nextPageUrl, nextPage)
 		}
-		if record.Name == name+"."+a.dom && *record.Content == content {
-			klog.V(4).Infof("Found record ID: %d", *record.ID)
-			return &record, nextPageUrl, nextPage, nil
+		if records[i].Name == recName+"."+domName && *records[i].Content == content {
+			klog.V(4).Infof("Found record ID: %d", *records[i].ID)
+			return &records[i], nextPageUrl, nextPage, nil
 		}
 	}
 	klog.V(4).Infof("Didn't find a record")
@@ -128,13 +120,13 @@ func (a *ApiClient) FindTxtRecordAtPage(name string, content string, recPageUrl 
 }
 
 // NewTxtRecord Create new DNS TXT record
-func (a *ApiClient) NewTxtRecord(name string, content string, ttl int) error {
-	klog.V(4).Infof("NewTxtRecord: domain=%s, service=%d, name=%s, content=%s, ttl=%d",
-		a.dom, a.svcID, name, content, ttl)
+func (a *ApiClient) NewTxtRecord(recName string, content string, ttl int) error {
+	klog.V(4).Infof("NewTxtRecord: serviceID=%d, name=%s, content=%s, ttl=%d",
+		a.svcID, recName, content, ttl)
 	rtype := string(active24.DnsRecordTypeTXT)
 	err := a.dns.Create(&active24.DnsRecord{
 		Type:    &rtype,
-		Name:    name,
+		Name:    recName,
 		Content: &content,
 		Ttl:     ttl,
 	})
@@ -146,11 +138,11 @@ func (a *ApiClient) NewTxtRecord(name string, content string, ttl int) error {
 }
 
 // UpdateTxtRecord Update existing DNS TXT record
-func (a *ApiClient) UpdateTxtRecord(ID int, name string, content string, ttl int) error {
-	klog.V(4).Infof("UpdateTxtRecord: domain=%s, service=%d, name=%s, content=%s, ttl=%d, ID=%d",
-		a.dom, a.svcID, name, content, ttl, ID)
+func (a *ApiClient) UpdateTxtRecord(ID int, recName string, content string, ttl int) error {
+	klog.V(4).Infof("UpdateTxtRecord: serviceID=%d, name=%s, content=%s, ttl=%d, ID=%d",
+		a.svcID, recName, content, ttl, ID)
 	err := a.dns.Update(ID, &active24.DnsRecord{
-		Name:    name,
+		Name:    recName,
 		Content: &content,
 		Ttl:     ttl,
 	})
@@ -163,7 +155,7 @@ func (a *ApiClient) UpdateTxtRecord(ID int, name string, content string, ttl int
 
 // DeleteTxtRecord Delete existing DNS record
 func (a *ApiClient) DeleteTxtRecord(ID int) error {
-	klog.V(4).Infof("DeleteTxtRecord: domain=%s, service=%d, ID=%d", a.dom, a.svcID, ID)
+	klog.V(4).Infof("DeleteTxtRecord: serviceID=%d, ID=%d", a.svcID, ID)
 	err := a.dns.Delete(ID)
 	if err != nil {
 		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
@@ -178,8 +170,7 @@ func NewApiClient(config Config) *ApiClient {
 		opts = append(opts, active24.ApiEndpoint(config.ApiUrl))
 	}
 	return &ApiClient{
-		dns:      active24.New(config.ApiKey, config.ApiSecret, opts...).Dns().With(config.DomainName, config.ServiceID),
-		dom:      config.DomainName,
+		dns:      active24.New(config.ApiKey, config.ApiSecret, opts...).Dns().With(config.ServiceID),
 		svcID:    config.ServiceID,
 		maxPages: config.MaxPages,
 	}

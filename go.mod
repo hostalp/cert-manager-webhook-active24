@@ -20,7 +20,7 @@ go 1.24.0
 
 require (
 	github.com/cert-manager/cert-manager v1.16.5
-	github.com/hostalp/active24-go v1.2.0
+	github.com/hostalp/active24-go v1.2.1
 	k8s.io/api v0.31.11
 	k8s.io/apiextensions-apiserver v0.31.11
 	k8s.io/apimachinery v0.31.11
