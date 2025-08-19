@@ -20,15 +20,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+
+	//"regexp"
+	"strings"
+
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook"
 	"k8s.io/klog/v2"
-	"os"
-	"regexp"
-	"strings"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
-	"github.com/rkosegi/cert-manager-webhook-active24/internal"
+	"github.com/hostalp/cert-manager-webhook-active24/internal"
 	corev1 "k8s.io/api/core/v1"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
@@ -44,9 +46,12 @@ type active24DNSProviderSolver struct {
 }
 
 type active24DNSProviderConfig struct {
-	ApiKeySecretRef corev1.SecretKeySelector `json:"apiKeySecretRef"`
-	Domain          string                   `json:"domain"`
-	ApiUrl          string                   `json:"apiUrl"`
+	ApiKeySecretRef    corev1.SecretKeySelector `json:"apiKeySecretRef"`
+	ApiSecretSecretRef corev1.SecretKeySelector `json:"apiSecretSecretRef"`
+	ServiceID          int                      `json:"serviceID"`
+	Domain             string                   `json:"domain"`
+	ApiUrl             string                   `json:"apiUrl"`
+	MaxPages           int                      `json:"maxPages"`
 }
 
 func main() {
@@ -88,19 +93,19 @@ func (c *active24DNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error
 	}
 
 	client := internal.NewApiClient(config)
-	record, err := client.FindTxtRecord(name, ch.Key)
+	record, err := client.FindTxtRecordPaged(name, ch.Key)
 	if err != nil {
 		return err
 	}
 
-	klog.V(6).Infof("Record : %v", record)
+	klog.V(6).Infof("Record: %v", record)
 	if record == nil {
 		err := client.NewTxtRecord(name, ch.Key, 300)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := client.UpdateTxtRecord(*record.HashId, name, ch.Key, 300)
+		err := client.UpdateTxtRecord(*record.ID, name, ch.Key, 300)
 		if err != nil {
 			return err
 		}
@@ -124,16 +129,30 @@ func (c *active24DNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error
 
 	client := internal.NewApiClient(config)
 
-	record, err := client.FindTxtRecord(name, ch.Key)
+	record, err := client.FindTxtRecordPaged(name, ch.Key)
 	if err != nil {
 		return err
 	}
 
-	klog.V(6).Infof("Existing record : %v", record)
+	klog.V(6).Infof("Existing record: %v", record)
 	if record != nil {
-		return client.DeleteTxtRecord(*record.HashId)
+		return client.DeleteTxtRecord(*record.ID)
 	}
 	return nil
+}
+
+func getK8sSecret(c *active24DNSProviderSolver, ch *v1alpha1.ChallengeRequest, secretName string, secretKey string) ([]byte, error) {
+	klog.V(6).Infof("getK8sSecret: Reading secret '%s:%s' in namespace '%s'", secretName, secretKey, ch.ResourceNamespace)
+	sec, err := c.k8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(c.ctx, secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to get secret `%s/%s`; %v", ch.ResourceNamespace, secretName, err)
+	}
+
+	apiKey, ok := sec.Data[secretKey]
+	if !ok {
+		return nil, fmt.Errorf("key '%q' not found in secret data", secretKey)
+	}
+	return apiKey, nil
 }
 
 func loadConfig(cfgJSON *extapi.JSON) (active24DNSProviderConfig, error) {
@@ -156,43 +175,59 @@ func clientConfig(c *active24DNSProviderSolver, ch *v1alpha1.ChallengeRequest) (
 	if err != nil {
 		return config, err
 	}
-	config.DomainName = cfg.Domain
-	config.ApiUrl = "https://api.active24.com"
+	config.ServiceID = cfg.ServiceID
+	config.DomainName = strings.TrimSuffix(ch.ResolvedZone, ".")
+	if cfg.Domain != "" {
+		config.DomainName = cfg.Domain
+	}
+	config.ApiUrl = "https://rest.active24.cz"
 	if cfg.ApiUrl != "" {
 		config.ApiUrl = cfg.ApiUrl
 	}
+	config.MaxPages = 100 // safeguard to prevent infinite loops
+	if cfg.MaxPages > 0 {
+		config.MaxPages = cfg.MaxPages
+	}
 
-	secretName := cfg.ApiKeySecretRef.Name
-	secretKey := "apiKey"
+	secretNameApiKey := cfg.ApiKeySecretRef.Name
+	secretNameApiSecret := cfg.ApiSecretSecretRef.Name
+	secretApiKey := "apiKey"
+	secretApiSecret := "apiSecret"
 	if cfg.ApiKeySecretRef.Key != "" {
-		secretKey = cfg.ApiKeySecretRef.Key
+		secretApiKey = cfg.ApiKeySecretRef.Key
+	}
+	if cfg.ApiSecretSecretRef.Key != "" {
+		secretApiSecret = cfg.ApiSecretSecretRef.Key
 	}
 
-	klog.V(6).Infof("Reading secret '%s:%s' in namespace '%s'", secretName, secretKey, ch.ResourceNamespace)
-	sec, err := c.k8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(c.ctx, secretName, metav1.GetOptions{})
-
+	// Get API key from the k8s secret
+	apiKey, err := getK8sSecret(c, ch, secretNameApiKey, secretApiKey)
 	if err != nil {
-		return config, fmt.Errorf("unable to get secret `%s/%s`; %v", ch.ResourceNamespace, secretName, err)
+		return config, err
 	}
-
-	apiKey, ok := sec.Data[secretKey]
-	if !ok {
-		return config, fmt.Errorf("key '%q' not found in secret data", secretKey)
-	}
-
 	config.ApiKey = string(apiKey)
+
+	// Get API secret from the k8s secret
+	apiSecret, err := getK8sSecret(c, ch, secretNameApiSecret, secretApiSecret)
+	if err != nil {
+		return config, err
+	}
+	config.ApiSecret = string(apiSecret)
+
 	return config, nil
 }
 
 // extracts record name from FQDN
 func (c *active24DNSProviderSolver) recordName(ch *v1alpha1.ChallengeRequest) (string, error) {
 	klog.V(4).Infof("recordName: ResolvedZone=%s, ResolvedFQDN=%s", ch.ResolvedZone, ch.ResolvedFQDN)
-	domain := strings.TrimRight(ch.ResolvedZone, ".")
+	return strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone), nil
+	// Replaced with simple TrimSuffix above
+	/* domain := strings.TrimSuffix(ch.ResolvedZone, ".")
 	regexStr := "(.+)\\." + domain + "\\."
 	r := regexp.MustCompile(regexStr)
 	name := r.FindStringSubmatch(ch.ResolvedFQDN)
 	if len(name) != 2 {
 		return "", fmt.Errorf("unable to extract name from FQDN '%s' using regex '%s'", ch.ResolvedFQDN, regexStr)
 	}
-	return strings.TrimRight(name[1], "."), nil
+	return strings.TrimSuffix(name[1], "."), nil */
 }
