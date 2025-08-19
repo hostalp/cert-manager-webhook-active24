@@ -25,7 +25,7 @@ jobs:
           API_TOKEN_GITHUB: ${{ secrets.PAT_PUSH }}
         with:
           source-directory: cert-manager-webhook-active24/
-          destination-github-username: rkosegi
+          destination-github-username: hostalp
           destination-repository-name: helm-charts
           target-directory: charts/cert-manager-webhook-active24
           user-email: richard.kosegi@gmail.com

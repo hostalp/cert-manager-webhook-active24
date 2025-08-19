@@ -15,7 +15,7 @@ The following table lists the configurable parameters of the Cert-manager-webhoo
 | `certManager.namespace` | Namespace where certmanager is installed | `"cert-manager"`                          |
 | `certManager.serviceAccountName` | Name of service account under which cert manager is running | `"cert-manager"`                          |
 | `image.repository` | Image repository | `"rkosegi/cert-manager-webhook-active24"` |
-| `image.tag` | Image tag/version | `"1.0.1"`                                 |
+| `image.tag` | Image tag/version | `"1.2.0"`                                 |
 | `image.pullPolicy` | Image pull policy | `"IfNotPresent"`                          |
 | `nameOverride` | Name to use for overriding default name | `""`                                      |
 | `fullnameOverride` | Name to use for overriding default full name | `""`                                      |

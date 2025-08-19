@@ -16,6 +16,7 @@
 apiVersion: v1
 data:
   apiKey: Rut/FiPML2Jv2hSjhg0HUAs825pa2zfapbou6W9cpatDijWhmZ5e1x602pmQQA9ztlg6eHyJR2tj
+  apiSecret: Rut/FiPML2Jv2hSjhg0HUAs825pa2zfapbou6W9cpatDijWhmZ5e1x602pmQQA9ztlg6eHyJR2tj
 kind: Secret
 metadata:
   namespace: cert-manager
@@ -39,26 +40,31 @@ spec:
     - selector: {}
       dns01:
         webhook:
-          groupName: acme.yourdomain.tld
+          groupName: acme.yourdomain.tld # apiGroup from cert-manager-webhook-active24 Helm chart
           solverName: active24
           config:
             apiKeySecretRef:
-              name: 'active24-apikey'
+              name: &apiKSName 'active24-apikey'
               key: 'apiKey'
-            domain: yourdomain.tld
+            apiSecretSecretRef:
+              name: *apiKSName
+              key: 'apiSecret'
+            serviceID: 12345678
+            domain: yourdomain.tld # optional
+            maxPages: 10 # optional
 
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: yourdomain.tld
+  name: &certName yourdomain.tld
   namespace: default
 spec:
-  commonName: yourdomain.tld
+  commonName: &commonName yourdomain.tld
   dnsNames:
-    - yourdomain.tld
+    - *commonName
     - '*.yourdomain.tld'
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  secretName: yourdomain.tld
+  secretName: *certName
