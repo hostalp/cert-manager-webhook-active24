@@ -1,6 +1,6 @@
-# ACME webhook for Active24 DNS API
+# ACME webhook for Active24 DNS APIv2
 
-This repository contains code and supporting files for ACME webhook that interacts with [active24.cz](https://customer.active24.com/user/api) DNS API.
+This repository contains code and supporting files for ACME webhook that interacts with [active24.cz](https://rest.active24.cz/v2/docs) DNS APIv2.
 
 ## Installation
 
@@ -8,19 +8,21 @@ This repository contains code and supporting files for ACME webhook that interac
 
 - [cert-manager](https://cert-manager.io/docs/installation/)
 
-- [API token](https://customer.active24.com/user/api) to access your domain
+- [API key and secret](https://admin.active24.cz/en/auth/security-settings) to access your domain
 
-Create secret with API token
+- [Service ID](https://admin.active24.cz/en/services) to be determined from the link to the desired service (domain), example: `12345678` for `https://admin.active24.cz/en/dashboard/service/12345678`
+
+Create secret with API key and secret
 
 ```
 kubectl create secret generic active24-apikey --namespace cert-manager \
-	--from-literal='apiKey=abcd1234567890'
+	--from-literal='apiKey=abcd1234567890' --from-literal='apiSecret=defg0987654321'
 ```
 
 Create ClusterIssuer
 
 
-Apply following manifest into cluster
+Apply the following manifest into cluster
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -42,16 +44,25 @@ spec:
           - somegreatdomain.tld
       dns01:
         webhook:
-          groupName: acme.yourdomain.tld
+          groupName: acme.yourdomain.tld # apiGroup from cert-manager-webhook-active24 Helm chart
           solverName: active24
           config:
             apiKeySecretRef:
-              name: 'active24-apikey'
+              name: &apiKSName 'active24-apikey'
               key: 'apiKey'
-            domain: somegreatdomain.tld
+            apiSecretSecretRef:
+              name: *apiKSName
+              key: 'apiSecret'
+            serviceID: 12345678
+            domain: somegreatdomain.tld # optional
+            maxPages: 10 # optional
 ```
 
-Replace `somegreatdomain.tld` with actual domain managed by Active24
+`domain` is optional. If not set, it will be determined from [cert-manager ChallengeRequest.ResolvedZone](https://github.com/cert-manager/cert-manager/blob/master/pkg/acme/webhook/apis/acme/v1alpha1/types.go).
+If setting explicitly, specify the actual domain managed by Active24.
+
+`maxPages` is optional. It specifies page limit for paginated DNS records that Active24 DNS APIv2 returns. Default value is 100.
+Default page size (currently not modified by this webhook) is 20 e.g. this webhook will handle situations with up to 2000 _acme-challenge DNS TXT records by default.
 
 Install using helm
 
@@ -65,14 +76,14 @@ Create certificate
 kind: Certificate
 apiVersion: cert-manager.io/v1
 metadata:
-  name: my-certificate
+  name: &certName my-certificate
 spec:
-  commonName: somegreatdomain.tld
+  commonName: &commonName somegreatdomain.tld
   dnsNames:
-    - somegreatdomain.tld
+    - *commonName
     - '*.somegreatdomain.tld'
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-prod
-  secretName: somegreatdomain.tld-tls
+  secretName: *certName
 ```
