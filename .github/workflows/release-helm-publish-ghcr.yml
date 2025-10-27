@@ -62,7 +62,7 @@ jobs:
     needs:  build
     steps:
       - name: Download Artifact from build job
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ github.event.repository.name }}-chart
           path: .output_chart
