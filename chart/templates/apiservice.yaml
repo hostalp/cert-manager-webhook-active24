@@ -25,7 +25,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "webhook-active24.servingCertificate" . }}'
 spec:
-  group: {{ .Values.apiGroup }}
+  group: {{ .Values.groupName }}
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
