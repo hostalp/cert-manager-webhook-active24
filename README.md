@@ -38,7 +38,7 @@ spec:
           - somegreatdomain.tld
       dns01:
         webhook:
-          groupName: acme.yourdomain.tld # apiGroup from cert-manager-webhook-active24 Helm chart
+          groupName: acme.yourdomain.tld # groupName from cert-manager-webhook-active24 Helm chart
           solverName: active24
           config:
             apiKeySecretRef:
@@ -57,7 +57,7 @@ Default page size (currently not modified by this webhook) is 20 e.g. this webho
 Example using default settings:
 ```sh
 helm upgrade --install cert-manager-webhook-active24 -n cert-manager \
- oci://ghcr.io/hostalp/cert-manager-webhook-active24/charts/cert-manager-webhook-active24 --version 1.2.1
+ oci://ghcr.io/hostalp/cert-manager-webhook-active24/charts/cert-manager-webhook-active24 --version 1.2.2
 ```
 When customizing installation settings, either provide customized `values.yaml` file via the `-f` flag, or specify individual settings via `--set` flags
 

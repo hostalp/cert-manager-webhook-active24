@@ -20,7 +20,7 @@
 # inform cert-manager of where to send ChallengePayload resources in order to
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
-apiGroup: acme.yourdomain.tld # API group name that this installation is registered with API server
+groupName: acme.yourdomain.tld # API group name that this installation is registered with API server
 apiVersion: v1alpha1 # API version
 
 certManager: # Certmanager configuration
@@ -29,7 +29,7 @@ certManager: # Certmanager configuration
 
 image: # Container image coordinates
   repository: ghcr.io/hostalp/cert-manager-webhook-active24 # Image repository
-  tag: v1.2.1 # Image tag/version
+  tag: v1.2.2 # Image tag/version
   pullPolicy: IfNotPresent # Image pull policy
 
 nameOverride: "" # Name to use for overriding default name

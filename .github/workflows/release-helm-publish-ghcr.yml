@@ -9,7 +9,7 @@ on:
       version:
         required: false
         type: string
-        description: '(Optional) Version to set for the chart, must start with "v", example: v1.2.1'
+        description: '(Optional) Version to set for the chart, must start with "v", example: v1.2.2'
         default: v
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
         run: helm package . --destination .
 
       - name: Upload artifact for deploy job
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ github.event.repository.name }}-chart
           path: chart/*.tgz
@@ -62,7 +62,7 @@ jobs:
     needs:  build
     steps:
       - name: Download Artifact from build job
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ github.event.repository.name }}-chart
           path: .output_chart

@@ -40,7 +40,7 @@ spec:
     - selector: {}
       dns01:
         webhook:
-          groupName: acme.yourdomain.tld # apiGroup from cert-manager-webhook-active24 Helm chart
+          groupName: acme.yourdomain.tld # groupName from cert-manager-webhook-active24 Helm chart
           solverName: active24
           config:
             apiKeySecretRef:

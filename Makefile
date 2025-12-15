@@ -14,7 +14,7 @@
 
 
 IMAGE_NAME := "hostalp/cert-manager-webhook-active24"
-IMAGE_TAG := "1.2.1"
+IMAGE_TAG := "1.2.2"
 
 OUT := $(shell pwd)/deploy
 

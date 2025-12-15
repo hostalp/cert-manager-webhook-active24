@@ -47,7 +47,7 @@ spec:
             - -v=4
           env:
             - name: GROUP_NAME
-              value: {{ .Values.apiGroup | quote }}
+              value: {{ .Values.groupName | quote }}
           ports:
             - name: https
               containerPort: 8443

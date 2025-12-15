@@ -16,7 +16,7 @@
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
-  name: {{ .Values.apiVersion }}.{{ .Values.apiGroup }}
+  name: {{ .Values.apiVersion }}.{{ .Values.groupName }}
   labels:
     app: {{ include "webhook-active24.name" . }}
     chart: {{ include "webhook-active24.chart" . }}
@@ -25,7 +25,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "webhook-active24.servingCertificate" . }}'
 spec:
-  group: {{ .Values.apiGroup }}
+  group: {{ .Values.groupName }}
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
