@@ -47,7 +47,7 @@ jobs:
         run: helm package . --destination .
 
       - name: Upload artifact for deploy job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ github.event.repository.name }}-chart
           path: chart/*.tgz
