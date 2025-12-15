@@ -7,8 +7,7 @@ The following table lists the configurable parameters of the Cert-manager-webhoo
 
 | Parameter                        | Description                                                         | Default                                           |
 | -------------------------------- | ------------------------------------------------------------------- |---------------------------------------------------|
-| `apiGroup`                      | # API group name that this installation is registered with API server | `"acme.yourdomain.tld"`                           |
-| `groupName`                      | API group name that this installation is registered with API server | `"acme.yourdomain.tld"`                           |
+| `apiGroup`                       | API group name that this installation is registered with API server | `"acme.yourdomain.tld"`                           |
 | `certManager.namespace`          | Namespace where certmanager is installed                            | `"cert-manager"`                                  |
 | `certManager.serviceAccountName` | Name of service account under which cert manager is running         | `"cert-manager"`                                  |
 | `image.repository`               | Image repository                                                    | `"ghcr.io/hostalp/cert-manager-webhook-active24"` |
