@@ -14,10 +14,14 @@ categories:
     labels:
       - 'chore'
       - 'cleanup'
+  - title: '📦 Dependencies'
+    collapse-after: 4
+    labels:
       - 'dependencies'
   - title: '📝 Documentation'
     labels:
       - 'documentation'
+  - title: '✍ Other Changes'
 
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&'

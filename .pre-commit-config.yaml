@@ -6,14 +6,14 @@ repos:
       - id: trailing-whitespace
       - id: check-merge-conflict
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.7.2
+    rev: v2.12.2
     hooks:
       - id: golangci-lint
         args:
           - --timeout
           - 10m
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.4
     hooks:
       - id: go-mod-tidy
       - id: go-fmt
