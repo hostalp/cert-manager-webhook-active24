@@ -37,41 +37,51 @@ spec:
     spec:
       serviceAccountName: {{ include "webhook-active24.fullname" . }}
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - --tls-cert-file=/tls/tls.crt
-            - --tls-private-key-file=/tls/tls.key
-            - --secure-port=8443
-            - -v=4
-          env:
-            - name: GROUP_NAME
-              value: {{ .Values.groupName | quote }}
-          ports:
-            - name: https
-              containerPort: 8443
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              scheme: HTTPS
-              path: /healthz
-              port: https
-          readinessProbe:
-            httpGet:
-              scheme: HTTPS
-              path: /healthz
-              port: https
-          volumeMounts:
-            - name: certs
-              mountPath: /tls
-              readOnly: true
-          resources:
-{{ toYaml .Values.resources | indent 12 }}
-      volumes:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - --tls-cert-file=/tls/tls.crt
+        - --tls-private-key-file=/tls/tls.key
+        - --secure-port=8443
+        - -v=4
+        env:
+        - name: GROUP_NAME
+          value: {{ .Values.groupName | quote }}
+        ports:
+        - name: https
+          containerPort: 8443
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /healthz
+            port: https
+        readinessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /healthz
+            port: https
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
         - name: certs
-          secret:
-            secretName: {{ include "webhook-active24.servingCertificate" . }}
+          mountPath: /tls
+          readOnly: true
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+      volumes:
+      - name: certs
+        secret:
+          secretName: {{ include "webhook-active24.servingCertificate" . }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

@@ -29,7 +29,7 @@ certManager: # Certmanager configuration
 
 image: # Container image coordinates
   repository: ghcr.io/hostalp/cert-manager-webhook-active24 # Image repository
-  tag: v1.2.2 # Image tag/version
+  tag: v1.2.4 # Image tag/version
   pullPolicy: IfNotPresent # Image pull policy
 
 nameOverride: "" # Name to use for overriding default name
@@ -40,7 +40,7 @@ service: # Endpoint exposure
   port: 443 # HTTPs port
 
 secretNames: # Names of secrets containing API keys
-  - active24-apikey
+- active24-apikey
 
 resources: {} # Resource requests and limits.
   # We usually recommend not to specify default resources and to leave this as a conscious

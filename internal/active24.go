@@ -115,7 +115,7 @@ func (a *ApiClient) FindTxtRecordAtPage(domName string, recName string, content 
 			return &records[i], nextPageUrl, nextPage, nil
 		}
 	}
-	klog.V(4).Infof("Didn't find a record")
+	klog.V(4).Infof("Didn't find the record")
 	return nil, nextPageUrl, nextPage, nil
 }
 
@@ -174,4 +174,37 @@ func NewApiClient(config Config) *ApiClient {
 		svcID:    config.ServiceID,
 		maxPages: config.MaxPages,
 	}
+}
+
+// GetServiceIDByDomain retrieves the service ID for a given domain name using the Active24 APIv1 service endpoint
+func GetServiceIDByDomain(apiKey, apiSecret, apiUrl, domainName string) (int, error) {
+	klog.V(4).Infof("GetServiceIDByDomain: domain=%s", domainName)
+	opts := make([]active24.Option, 0)
+	if len(apiUrl) > 0 {
+		opts = append(opts, active24.ApiEndpoint(apiUrl))
+	}
+
+	client := active24.New(apiKey, apiSecret, opts...)
+	services, err := client.Service().ListAll()
+	if err != nil {
+		klog.V(1).ErrorS(err.Error(), "invalid API response", "code", err.Response().Status)
+		return 0, fmt.Errorf("failed to retrieve services: %w", err.Error())
+	}
+	if len(services) == 0 {
+		return 0, fmt.Errorf("no services found for API account")
+	}
+
+	klog.V(6).Infof("Found %d services", len(services))
+
+	// Search for the service matching the domain name
+	//domainNameLower := strings.ToLower(domainName) // case-insensitive option
+	for i := range services {
+		if services[i].Name == domainName {
+			if services[i].ID != nil {
+				klog.V(4).Infof("Found service ID %d for domain %s", *services[i].ID, domainName)
+				return *services[i].ID, nil
+			}
+		}
+	}
+	return 0, fmt.Errorf("no service found for domain: %s", domainName)
 }

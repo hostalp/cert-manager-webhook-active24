@@ -49,8 +49,8 @@ spec:
             apiSecretSecretRef:
               name: *apiKSName
               key: 'apiSecret'
-            serviceID: 12345678
-            maxPages: 10 # optional
+            # serviceID: 12345678 # optional
+            # maxPages: 10 # optional
 
 ---
 apiVersion: cert-manager.io/v1
@@ -61,8 +61,8 @@ metadata:
 spec:
   commonName: &commonName yourdomain.tld
   dnsNames:
-    - *commonName
-    - '*.yourdomain.tld'
+  - *commonName
+  - '*.yourdomain.tld'
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer

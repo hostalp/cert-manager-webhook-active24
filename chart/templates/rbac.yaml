@@ -42,10 +42,10 @@ roleRef:
   kind: Role
   name: extension-apiserver-authentication-reader
 subjects:
-  - apiGroup: ""
-    kind: ServiceAccount
-    name: {{ include "webhook-active24.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+- apiGroup: ""
+  kind: ServiceAccount
+  name: {{ include "webhook-active24.fullname" . }}
+  namespace: {{ .Release.Namespace }}
 ---
 # apiserver gets the auth-delegator role to delegate auth decisions to
 # the core apiserver
@@ -63,10 +63,10 @@ roleRef:
   kind: ClusterRole
   name: system:auth-delegator
 subjects:
-  - apiGroup: ""
-    kind: ServiceAccount
-    name: {{ include "webhook-active24.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+- apiGroup: ""
+  kind: ServiceAccount
+  name: {{ include "webhook-active24.fullname" . }}
+  namespace: {{ .Release.Namespace }}
 
 # ClusterRole to allow creating resources in our apiserver
 ---
@@ -80,12 +80,12 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 rules:
-  - apiGroups:
-      - {{ .Values.groupName }}
-    resources:
-      - '*'
-    verbs:
-      - 'create'
+- apiGroups:
+  - {{ .Values.groupName }}
+  resources:
+  - '*'
+  verbs:
+  - 'create'
 
 # Grant cert-manager permission to validate using our apiserver
 ---
@@ -103,10 +103,10 @@ roleRef:
   kind: ClusterRole
   name: {{ include "webhook-active24.fullname" . }}:domain-solver
 subjects:
-  - apiGroup: ""
-    kind: ServiceAccount
-    name: {{ .Values.certManager.serviceAccountName }}
-    namespace: {{ .Values.certManager.namespace }}
+- apiGroup: ""
+  kind: ServiceAccount
+  name: {{ .Values.certManager.serviceAccountName }}
+  namespace: {{ .Values.certManager.namespace }}
 
 # Role to allow reading configured secrets with API keys
 ---
@@ -116,17 +116,17 @@ metadata:
   name: {{ include "webhook-active24.fullname" . }}:secret-reader
   namespace: {{ .Release.Namespace }}
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - "secrets"
-    {{- with .Values.secretNames }}
-    resourceNames:
-    {{ toYaml . | indent 4 }}
-    {{- end }}
-    verbs:
-      - "get"
-      - "watch"
+- apiGroups:
+  - ""
+  resources:
+  - "secrets"
+  {{- with .Values.secretNames }}
+  resourceNames:
+  {{ toYaml . | indent 2 }}
+  {{- end }}
+  verbs:
+  - "get"
+  - "watch"
 
 # Grant our serviceAccount permission to read configured secrets with API keys
 ---
@@ -140,10 +140,10 @@ roleRef:
   kind: Role
   name: {{ include "webhook-active24.fullname" . }}:secret-reader
 subjects:
-  - apiGroup: ""
-    kind: ServiceAccount
-    name: {{ include "webhook-active24.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+- apiGroup: ""
+  kind: ServiceAccount
+  name: {{ include "webhook-active24.fullname" . }}
+  namespace: {{ .Release.Namespace }}
 ---
 # Flow control
 apiVersion: rbac.authorization.k8s.io/v1
@@ -156,14 +156,14 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 rules:
-  - apiGroups:
-      - flowcontrol.apiserver.k8s.io
-    resources:
-      - prioritylevelconfigurations
-      - flowschemas
-    verbs:
-      - list
-      - watch
+- apiGroups:
+  - flowcontrol.apiserver.k8s.io
+  resources:
+  - prioritylevelconfigurations
+  - flowschemas
+  verbs:
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -179,7 +179,7 @@ roleRef:
   kind: ClusterRole
   name: {{ include "webhook-active24.fullname" . }}:flowcontrol-reader
 subjects:
-  - apiGroup: ""
-    kind: ServiceAccount
-    name: {{ include "webhook-active24.fullname" . }}
-    namespace: {{ .Release.Namespace }}
+- apiGroup: ""
+  kind: ServiceAccount
+  name: {{ include "webhook-active24.fullname" . }}
+  namespace: {{ .Release.Namespace }}

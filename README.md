@@ -5,10 +5,8 @@ This repository contains code and supporting files for ACME webhook that interac
 
 ### Requirements
 - [cert-manager](https://cert-manager.io/docs/installation/)
-
 - [API key and secret](https://admin.active24.cz/en/auth/security-settings) to access your domain
-
-- [Service ID](https://admin.active24.cz/en/services) to be determined from the link to the desired service (domain), example: `12345678` for `https://admin.active24.cz/en/dashboard/service/12345678`
+- (Optional) [Service ID](https://admin.active24.cz/en/services) - if you want to manually specify the service ID for a domain. If not provided, the service ID will be automatically retrieved using the domain name. Example: `12345678` from `https://admin.active24.cz/en/dashboard/service/12345678`
 
 ### Create secret with API key and secret
 ```sh
@@ -35,7 +33,7 @@ spec:
     solvers:
     - selector:
         dnsZones:
-          - somegreatdomain.tld
+        - somegreatdomain.tld
       dns01:
         webhook:
           groupName: acme.yourdomain.tld # groupName from cert-manager-webhook-active24 Helm chart
@@ -47,17 +45,19 @@ spec:
             apiSecretSecretRef:
               name: *apiKSName
               key: 'apiSecret'
-            serviceID: 12345678
-            maxPages: 10 # optional
+            # serviceID: 12345678 # optional
+            # maxPages: 10 # optional
 ```
+`serviceID` is optional. If not specified, it will be automatically retrieved using the domain name from the Challenge Request Zone.
+
 `maxPages` is optional. It specifies page limit for paginated DNS records that Active24 DNS APIv2 returns. Default value is 10.
-Default page size (currently not modified by this webhook) is 20 e.g. this webhook will handle situations with up to 200 `_acme-challenge` DNS TXT records by default.
+Default page size (currently not configurable) is 20 e.g. this webhook will handle situations with up to 200 `_acme-challenge` DNS TXT records by default.
 
 ### Install using helm
 Example using default settings:
 ```sh
 helm upgrade --install cert-manager-webhook-active24 -n cert-manager \
- oci://ghcr.io/hostalp/cert-manager-webhook-active24/charts/cert-manager-webhook-active24 --version 1.2.2
+ oci://ghcr.io/hostalp/cert-manager-webhook-active24/charts/cert-manager-webhook-active24 --version 1.2.4
 ```
 When customizing installation settings, either provide customized `values.yaml` file via the `-f` flag, or specify individual settings via `--set` flags
 
@@ -70,8 +70,8 @@ metadata:
 spec:
   commonName: &commonName somegreatdomain.tld
   dnsNames:
-    - *commonName
-    - '*.somegreatdomain.tld'
+  - *commonName
+  - '*.somegreatdomain.tld'
   issuerRef:
     kind: ClusterIssuer
     name: letsencrypt-prod

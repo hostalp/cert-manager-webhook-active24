@@ -11,30 +11,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{github.event.pull_request.head.sha}}
+    - name: Check out code
+      uses: actions/checkout@v7
+      with:
+        ref: ${{github.event.pull_request.head.sha}}
 
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: 'go.mod'
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-      - uses: pre-commit/action@v3.0.1
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.x'
+    - uses: pre-commit/action@v3.0.1
 
-      - name: Download go dependencies
-        run: go mod download
+    - name: Download go dependencies
+      run: go mod download
 
-      - name: Run build
-        run: go build -o webhook
+    - name: Run build
+      run: go build -o webhook
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: false
-          tags: ${{ github.repository }}:latest
+    - name: Build Docker image
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        push: false
+        tags: ${{ github.repository }}:latest

@@ -1,19 +1,19 @@
 ---
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: check-merge-conflict
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v2.12.2
-    hooks:
-      - id: golangci-lint
-        args:
-          - --timeout
-          - 10m
-  - repo: https://github.com/tekwizely/pre-commit-golang
-    rev: v1.0.0-rc.4
-    hooks:
-      - id: go-mod-tidy
-      - id: go-fmt
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: trailing-whitespace
+  - id: check-merge-conflict
+- repo: https://github.com/golangci/golangci-lint
+  rev: v2.12.2
+  hooks:
+  - id: golangci-lint
+    args:
+    - --timeout
+    - 10m
+- repo: https://github.com/tekwizely/pre-commit-golang
+  rev: v1.0.0-rc.4
+  hooks:
+  - id: go-mod-tidy
+  - id: go-fmt

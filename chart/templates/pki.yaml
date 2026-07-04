@@ -85,6 +85,6 @@ spec:
   issuerRef:
     name: {{ include "webhook-active24.rootCAIssuer" . }}
   dnsNames:
-    - {{ include "webhook-active24.fullname" . }}
-    - {{ include "webhook-active24.fullname" . }}.{{ .Release.Namespace }}
-    - {{ include "webhook-active24.fullname" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "webhook-active24.fullname" . }}
+  - {{ include "webhook-active24.fullname" . }}.{{ .Release.Namespace }}
+  - {{ include "webhook-active24.fullname" . }}.{{ .Release.Namespace }}.svc

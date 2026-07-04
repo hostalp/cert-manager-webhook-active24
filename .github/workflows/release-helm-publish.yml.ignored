@@ -2,7 +2,7 @@ name: 'Release: Publish Helm chart'
 on:
   push:
     tags:
-      - v*
+    - v*
   workflow_dispatch:
 
 jobs:
@@ -12,21 +12,21 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v7
-      - name: Prepare
-        run: |
-          mkdir cert-manager-webhook-active24
-          cp -Rv chart/* cert-manager-webhook-active24/
+    - uses: actions/checkout@v7
+    - name: Prepare
+      run: |
+        mkdir cert-manager-webhook-active24
+        cp -Rv chart/* cert-manager-webhook-active24/
 
-      - name: Push to chart repository
-        uses: cpina/github-action-push-to-another-repository@main
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.PAT_PUSH }}
-        with:
-          source-directory: cert-manager-webhook-active24/
-          destination-github-username: hostalp
-          destination-repository-name: helm-charts
-          target-directory: charts/cert-manager-webhook-active24
-          user-email: richard.kosegi@gmail.com
-          commit-message: "chart: cert-manager-webhook-active24@$GITHUB_REF"
-          target-branch: main
+    - name: Push to chart repository
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.PAT_PUSH }}
+      with:
+        source-directory: cert-manager-webhook-active24/
+        destination-github-username: hostalp
+        destination-repository-name: helm-charts
+        target-directory: charts/cert-manager-webhook-active24
+        user-email: richard.kosegi@gmail.com
+        commit-message: "chart: cert-manager-webhook-active24@$GITHUB_REF"
+        target-branch: main

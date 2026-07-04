@@ -205,16 +205,31 @@ func clientConfig(c *active24DNSProviderSolver, ch *v1alpha1.ChallengeRequest) (
 	}
 	config.ApiSecret = string(apiSecret)
 
+	// If serviceID is not configured, retrieve it dynamically using the domain name from the Challenge Request Zone
+	if config.ServiceID == 0 {
+		klog.V(2).Infof("ServiceID not configured, attempting to retrieve dynamically for domain")
+		domainName := c.getDomainName(ch)
+		serviceID, err := internal.GetServiceIDByDomain(config.ApiKey, config.ApiSecret, config.ApiUrl, domainName)
+		if err != nil {
+			klog.V(1).ErrorS(err, "failed to retrieve serviceID dynamically", "domain", domainName)
+			return config, err
+		}
+		config.ServiceID = serviceID
+		klog.V(2).Infof("ServiceID retrieved dynamically: %d for domain: %s", serviceID, domainName)
+	} else {
+		klog.V(4).Infof("Using configured serviceID: %d", config.ServiceID)
+	}
+
 	return config, nil
 }
 
-// Get record name from Challenge Request FQDN
+// Get record name from the Challenge Request FQDN
 func (c *active24DNSProviderSolver) getRecordName(ch *v1alpha1.ChallengeRequest) string {
 	klog.V(4).Infof("getRecordName: ResolvedZone=%s, ResolvedFQDN=%s", ch.ResolvedZone, ch.ResolvedFQDN)
 	return strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
 }
 
-// Get domain name from Challenge Request Zone
+// Get domain name from the Challenge Request Zone
 func (c *active24DNSProviderSolver) getDomainName(ch *v1alpha1.ChallengeRequest) string {
 	klog.V(4).Infof("getDomainName: ResolvedZone=%s", ch.ResolvedZone)
 	return strings.TrimSuffix(ch.ResolvedZone, ".")

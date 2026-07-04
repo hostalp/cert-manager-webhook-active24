@@ -27,10 +27,10 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: 8443
-      protocol: TCP
-      name: https
+  - port: {{ .Values.service.port }}
+    targetPort: 8443
+    protocol: TCP
+    name: https
   selector:
     app: {{ include "webhook-active24.name" . }}
     release: {{ .Release.Name }}
