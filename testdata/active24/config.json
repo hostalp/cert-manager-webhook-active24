@@ -2,6 +2,9 @@
   "apiKeySecretRef": {
     "name":  "apikey"
   },
+  "apiSecretSecretRef": {
+    "name":  "apikey"
+  },
   "domain": "mydomain.tld",
   "apiUrl" : "https://api.active24.com/dns"
 }

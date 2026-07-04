@@ -27,9 +27,9 @@ dist-clean:
 
 fetch-test-binaries:
 	mkdir .cache || true
-	test -f .cache/envtest-v1.31.0-linux-amd64.tar.gz || \
-		curl https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v1.31.0/envtest-v1.31.0-linux-amd64.tar.gz -o .cache/envtest-v1.31.0-linux-amd64.tar.gz
-	tar -zvxf .cache/envtest-v1.31.0-linux-amd64.tar.gz
+	test -f .cache/envtest-v1.34.1-linux-amd64.tar.gz || \
+		curl https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v1.34.1/envtest-v1.34.1-linux-amd64.tar.gz -o .cache/envtest-v1.34.1-linux-amd64.tar.gz
+	tar -zvxf .cache/envtest-v1.34.1-linux-amd64.tar.gz
 
 
 verify:
