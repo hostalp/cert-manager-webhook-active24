@@ -86,8 +86,8 @@ github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 h1:Ovs26xHkKqVztRpIrF/92Bcuy
 github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgfV/d3M/q6VIi02HzZEHgUlZvzk=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 h1:X5VWvz21y3gzm9Nw/kaUeku/1+uBhcekkmy4IkffJww=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1/go.mod h1:Zanoh4+gvIgluNqcfMVTJueD4wSS5hT7zTt4Mrutd90=
-github.com/hostalp/active24-go v1.2.3 h1:M8L/CFyh44eySH3zihmQ4GVE+VR4YPFQB9HFHAnUnKg=
-github.com/hostalp/active24-go v1.2.3/go.mod h1:KWpRkesu9Gjjc5rFq8i5AXm4zLsuxDP4DTTSDnTXDK4=
+github.com/hostalp/active24-go v1.2.4 h1:B6I/wOeoWrQkfRE1j+okrnQuR1NpWdDfBvZrL3mIo5Q=
+github.com/hostalp/active24-go v1.2.4/go.mod h1:ye0fI22qQIzvnDKDJw7Un+VcJjnOlXyWpNs0cYZecCY=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jonboulle/clockwork v0.5.0 h1:Hyh9A8u51kptdkR+cqRpT1EebBwTn1oK9YfGYbdFz6I=

@@ -20,7 +20,7 @@ go 1.26
 
 require (
 	github.com/cert-manager/cert-manager v1.19.6
-	github.com/hostalp/active24-go v1.2.3
+	github.com/hostalp/active24-go v1.2.4
 	k8s.io/api v0.34.9
 	k8s.io/apiextensions-apiserver v0.34.9
 	k8s.io/apimachinery v0.34.9
