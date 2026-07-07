@@ -17,8 +17,15 @@ limitations under the License.
 package internal
 
 import (
+	"container/list"
 	"sync"
 	"time"
+)
+
+// Default service ID cache configuration
+const (
+	defaultServiceIDCacheMaxSize = 100
+	defaultServiceIDCacheTTL     = 47 * 24 * time.Hour // 47 days
 )
 
 // ServiceIDCacheConfig represents a service ID cache configuration, exported to be accessible from another packages
@@ -27,19 +34,20 @@ type ServiceIDCacheConfig struct {
 	Ttl     time.Duration
 }
 
-// cacheEntry represents a cached service ID with expiration tracking
-type cacheEntry struct {
-	serviceID    int
-	expiryTime   time.Time
-	lastUsedTime time.Time
+// serviceIDCacheEntry represents a cached service ID with expiration tracking
+type serviceIDCacheEntry struct {
+	domain     string
+	serviceID  int
+	expiryTime time.Time
 }
 
 // ServiceIDCache is an LRU cache for service IDs with expiration
 type ServiceIDCache struct {
-	mu      sync.RWMutex
-	entries map[string]*cacheEntry
-	maxSize int
-	ttl     time.Duration
+	mu       sync.RWMutex
+	maxSize  int
+	ttl      time.Duration
+	ll       *list.List               // front = most recently used
+	elements map[string]*list.Element // domain -> list element
 }
 
 // SetDefaultConfig is a simple helper function for setting default configuration (can't handle valid "0" values or boolean types)
@@ -54,13 +62,14 @@ func SetDefaultConfig[T comparable](val *T, def T) {
 func NewServiceIDCache(cacheCfg ServiceIDCacheConfig) *ServiceIDCache {
 
 	// Set default cache configuration
-	SetDefaultConfig(&cacheCfg.MaxSize, 100)
-	SetDefaultConfig(&cacheCfg.Ttl, 47*24*time.Hour) // 47 days
+	SetDefaultConfig(&cacheCfg.MaxSize, defaultServiceIDCacheMaxSize)
+	SetDefaultConfig(&cacheCfg.Ttl, defaultServiceIDCacheTTL)
 
 	return &ServiceIDCache{
-		entries: make(map[string]*cacheEntry),
-		maxSize: cacheCfg.MaxSize,
-		ttl:     cacheCfg.Ttl,
+		maxSize:  cacheCfg.MaxSize,
+		ttl:      cacheCfg.Ttl,
+		ll:       list.New(),
+		elements: make(map[string]*list.Element),
 	}
 }
 
@@ -69,80 +78,100 @@ func (c *ServiceIDCache) Get(domain string) (int, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	entry, exists := c.entries[domain]
+	element, exists := c.elements[domain]
 	if !exists {
 		return 0, false
 	}
 
+	entry := element.Value.(*serviceIDCacheEntry)
 	// Check if expired
 	if time.Now().After(entry.expiryTime) {
-		delete(c.entries, domain)
+		c.removeElement(element)
 		return 0, false
 	}
 
-	// Update last used time
-	entry.lastUsedTime = time.Now()
+	// Mark as most recently used
+	c.ll.MoveToFront(element)
 	return entry.serviceID, true
 }
 
-// Put stores a service ID in the cache
-func (c *ServiceIDCache) Put(domain string, serviceID int) {
+// Set adds or replaces a service ID in the cache
+func (c *ServiceIDCache) Set(domain string, serviceID int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	now := time.Now()
 
-	// If cache is full, remove expired or LRU entry
-	if len(c.entries) >= c.maxSize {
-		c.removeExpiredUnlocked(now)
+	// if the entry exists, replace it
+	if element, exists := c.elements[domain]; exists {
+		entry := element.Value.(*serviceIDCacheEntry)
+		entry.serviceID = serviceID
+		entry.expiryTime = now.Add(c.ttl)
+		c.ll.MoveToFront(element)
+		return
+	}
 
-		// If still full, remove LRU
-		if len(c.entries) >= c.maxSize {
+	// If cache is full, remove expired or LRU entry
+	if c.ll.Len() >= c.maxSize {
+		if c.removeExpiredUnlocked(now) <= 0 {
 			c.removeLRUUnlocked()
 		}
 	}
 
-	c.entries[domain] = &cacheEntry{
-		serviceID:    serviceID,
-		expiryTime:   now.Add(c.ttl),
-		lastUsedTime: now,
+	entry := &serviceIDCacheEntry{
+		domain:     domain,
+		serviceID:  serviceID,
+		expiryTime: now.Add(c.ttl),
 	}
+	c.elements[domain] = c.ll.PushFront(entry)
 }
 
-// removeExpiredUnlocked removes all expired entries (must be called with lock held)
-func (c *ServiceIDCache) removeExpiredUnlocked(now time.Time) {
-	for domain, entry := range c.entries {
+// removeExpiredUnlocked removes all expired entries and returns the count of removed entries (must be called with lock held)
+func (c *ServiceIDCache) removeExpiredUnlocked(now time.Time) int {
+	removedCount := 0
+	var next *list.Element
+	for element := c.ll.Front(); element != nil; element = next {
+		next = element.Next()
+		entry := element.Value.(*serviceIDCacheEntry)
 		if now.After(entry.expiryTime) {
-			delete(c.entries, domain)
+			c.removeElement(element)
+			removedCount++
 		}
 	}
+	return removedCount
 }
 
 // removeLRUUnlocked removes the least recently used entry (must be called with lock held)
 func (c *ServiceIDCache) removeLRUUnlocked() {
-	var lruDomain string
-	var lruTime time.Time
-
-	for domain, entry := range c.entries {
-		if lruTime.IsZero() || entry.lastUsedTime.Before(lruTime) {
-			lruDomain = domain
-			lruTime = entry.lastUsedTime
-		}
-	}
-
-	if lruDomain != "" {
-		delete(c.entries, lruDomain)
+	if element := c.ll.Back(); element != nil {
+		c.removeElement(element)
 	}
 }
 
+// removeElement removes an element from both the list and the map (must be called with lock held)
+func (c *ServiceIDCache) removeElement(element *list.Element) {
+	c.ll.Remove(element)
+	entry := element.Value.(*serviceIDCacheEntry)
+	delete(c.elements, entry.domain)
+}
+
+// Len returns the current number of entries held in the cache (may include expired but not yet removed entries)
+func (c *ServiceIDCache) Len() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.ll.Len()
+}
+
 // serviceIDCache is the global cache instance
-var serviceIDCache *ServiceIDCache
-var cacheMutex sync.Mutex
+var (
+	serviceIDCache      *ServiceIDCache
+	serviceIDCacheMutex sync.Mutex
+)
 
 // InitServiceIDCache initializes the global service ID cache
 // This should be called once during application startup before the cache is used
 func InitServiceIDCache(cacheCfg ServiceIDCacheConfig) {
-	cacheMutex.Lock()
-	defer cacheMutex.Unlock()
+	serviceIDCacheMutex.Lock()
+	defer serviceIDCacheMutex.Unlock()
 	serviceIDCache = NewServiceIDCache(cacheCfg)
 }

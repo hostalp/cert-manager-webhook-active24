@@ -182,7 +182,7 @@ func GetServiceIDByDomain(apiKey, apiSecret, apiUrl, domainName string) (int, er
 
 	// Check cache first if it's initialized
 	if serviceIDCache != nil {
-		if serviceID, found := serviceIDCache.Get(domainName); found {
+		if serviceID, exists := serviceIDCache.Get(domainName); exists {
 			klog.V(4).Infof("Found service ID %d for domain %s in cache", serviceID, domainName)
 			return serviceID, nil
 		}
@@ -214,7 +214,7 @@ func GetServiceIDByDomain(apiKey, apiSecret, apiUrl, domainName string) (int, er
 
 				// Store in cache if it's initialized
 				if serviceIDCache != nil {
-					serviceIDCache.Put(domainName, serviceID)
+					serviceIDCache.Set(domainName, serviceID)
 					klog.V(4).Infof("Found service ID %d for domain %s and cached it", serviceID, domainName)
 				} else {
 					klog.V(4).Infof("Found service ID %d for domain %s (cache not initialized)", serviceID, domainName)
