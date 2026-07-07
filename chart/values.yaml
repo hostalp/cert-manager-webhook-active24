@@ -42,6 +42,8 @@ service: # Endpoint exposure
 secretNames: # Names of secrets containing API keys
 - active24-apikey
 
+serviceIDCacheTTL: 3384h # (3*47=141 days) Lifetime of cached service IDs (format: https://pkg.go.dev/time#ParseDuration, e.g., "1h", "30m")
+
 resources: {} # Resource requests and limits.
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little

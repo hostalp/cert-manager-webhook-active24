@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	//"regexp"
 	"strings"
@@ -53,8 +54,17 @@ type active24DNSProviderConfig struct {
 	MaxPages           int                      `json:"maxPages"`
 }
 
+// defaultServiceIDCacheTTL is used if SERVICEID_CACHE_TTL is unset or invalid: 3*47=141 days
+const defaultServiceIDCacheTTL = 141 * 24 * time.Hour
+
 func main() {
 	klog.InitFlags(nil)
+
+	// Initialize the service ID cache with the configured TTL
+	var serviceIDCacheConfig internal.ServiceIDCacheConfig
+	serviceIDCacheConfig.Ttl = setServiceIDCacheTTLFromEnv()
+	internal.InitServiceIDCache(serviceIDCacheConfig)
+
 	if groupName := os.Getenv("GROUP_NAME"); groupName != "" {
 		cmd.RunWebhookServer(groupName, &active24DNSProviderSolver{
 			ctx: context.Background(),
@@ -233,4 +243,14 @@ func (c *active24DNSProviderSolver) getRecordName(ch *v1alpha1.ChallengeRequest)
 func (c *active24DNSProviderSolver) getDomainName(ch *v1alpha1.ChallengeRequest) string {
 	klog.V(4).Infof("getDomainName: ResolvedZone=%s", ch.ResolvedZone)
 	return strings.TrimSuffix(ch.ResolvedZone, ".")
+}
+
+// Set ServiceID cache TTL from the environment variable SERVICEID_CACHE_TTL
+func setServiceIDCacheTTLFromEnv() time.Duration {
+	if v := os.Getenv("SERVICEID_CACHE_TTL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return defaultServiceIDCacheTTL
 }

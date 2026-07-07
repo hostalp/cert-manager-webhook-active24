@@ -6,7 +6,7 @@ This repository contains code and supporting files for ACME webhook that interac
 ### Requirements
 - [cert-manager](https://cert-manager.io/docs/installation/)
 - [API key and secret](https://admin.active24.cz/en/auth/security-settings) to access your domain
-- (Optional) [Service ID](https://admin.active24.cz/en/services) - if you want to manually specify the service ID for a domain. If not provided, the service ID will be automatically retrieved using the domain name. Example: `12345678` from `https://admin.active24.cz/en/dashboard/service/12345678`
+- (Optional) [Service ID](https://admin.active24.cz/en/services) - If not provided, the Service ID will be automatically retrieved using the domain name. To specify it manually, determine it from the link to the desired Active24 service (domain). Example: `12345678` for `https://admin.active24.cz/en/dashboard/service/12345678`
 
 ### Create secret with API key and secret
 ```sh

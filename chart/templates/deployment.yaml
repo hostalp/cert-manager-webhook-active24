@@ -48,6 +48,8 @@ spec:
         env:
         - name: GROUP_NAME
           value: {{ .Values.groupName | quote }}
+        - name: SERVICEID_CACHE_TTL
+          value: {{ .Values.serviceIDCacheTTL | quote }}
         ports:
         - name: https
           containerPort: 8443

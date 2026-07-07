@@ -179,6 +179,15 @@ func NewApiClient(config Config) *ApiClient {
 // GetServiceIDByDomain retrieves the service ID for a given domain name using the Active24 APIv1 service endpoint
 func GetServiceIDByDomain(apiKey, apiSecret, apiUrl, domainName string) (int, error) {
 	klog.V(4).Infof("GetServiceIDByDomain: domain=%s", domainName)
+
+	// Check cache first if it's initialized
+	if serviceIDCache != nil {
+		if serviceID, found := serviceIDCache.Get(domainName); found {
+			klog.V(4).Infof("Found service ID %d for domain %s in cache", serviceID, domainName)
+			return serviceID, nil
+		}
+	}
+
 	opts := make([]active24.Option, 0)
 	if len(apiUrl) > 0 {
 		opts = append(opts, active24.ApiEndpoint(apiUrl))
@@ -201,8 +210,17 @@ func GetServiceIDByDomain(apiKey, apiSecret, apiUrl, domainName string) (int, er
 	for i := range services {
 		if services[i].Name == domainName {
 			if services[i].ID != nil {
-				klog.V(4).Infof("Found service ID %d for domain %s", *services[i].ID, domainName)
-				return *services[i].ID, nil
+				serviceID := *services[i].ID
+
+				// Store in cache if it's initialized
+				if serviceIDCache != nil {
+					serviceIDCache.Put(domainName, serviceID)
+					klog.V(4).Infof("Found service ID %d for domain %s and cached it", serviceID, domainName)
+				} else {
+					klog.V(4).Infof("Found service ID %d for domain %s (cache not initialized)", serviceID, domainName)
+				}
+
+				return serviceID, nil
 			}
 		}
 	}
